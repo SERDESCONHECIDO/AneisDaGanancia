@@ -1,4 +1,5 @@
 name: Build Mod
+
 on:
   push:
   workflow_dispatch:
@@ -8,47 +9,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '6.0.x'
-        
-    - name: Baixar SMAPI
+
+    - name: Clonar Assemblies de Referência do Jogo
       run: |
-        wget https://github.com/Pathoschild/SMAPI/releases/download/4.1.10/SMAPI-4.1.10-installer.zip -O smapi.zip
-        unzip -q smapi.zip
-        mkdir -p lib
-        find . -name "*.dll" -path "*/internal/*" -exec cp {} lib/ \;
-        
-    - name: Criar Projeto
-      run: |
-        cat > AnelDaGanancia.csproj << 'EOF'
-        <Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <TargetFramework>net6.0</TargetFramework>
-            <LangVersion>latest</LangVersion>
-            <EnableHarmony>true</EnableHarmony>
-          </PropertyGroup>
-          <ItemGroup>
-            <Reference Include="StardewValley"><HintPath>lib/StardewValley.dll</HintPath></Reference>
-            <Reference Include="StardewModdingAPI"><HintPath>lib/StardewModdingAPI.dll</HintPath></Reference>
-            <Reference Include="StardewValley.GameData"><HintPath>lib/StardewValley.GameData.dll</HintPath></Reference>
-            <Reference Include="MonoGame.Framework"><HintPath>lib/MonoGame.Framework.dll</HintPath></Reference>
-            <Reference Include="0Harmony"><HintPath>lib/0Harmony.dll</HintPath></Reference>
-          </ItemGroup>
-        </Project>
-        EOF
-        
+        git clone --depth 1 https://github.com/StardewModders/mod-reference-assemblies.git "$HOME/StardewValley"
+
     - name: Compilar
-      run: dotnet build -c Release
-      
+      run: dotnet build AnelDaGanancia.csproj -c Release
+
     - name: Empacotar
       run: |
         mkdir -p Mod_Pronto
         cp manifest.json Mod_Pronto/
         cp bin/Release/net6.0/AnelDaGanancia.dll Mod_Pronto/
-        
+
     - name: Salvar Zip
       uses: actions/upload-artifact@v4
       with:
