@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -47,7 +48,7 @@ namespace AnelDaGanancia
 
         private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
-            if (!Game1.player.Items.ContainsId("AnelDaGanancia_Item"))
+            if (!Game1.player.Items.Any(item => item?.ItemId == "AnelDaGanancia_Item"))
             {
                 var anel = new Ring("AnelDaGanancia_Item");
                 Game1.player.addItemToInventory(anel);
