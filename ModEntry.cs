@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -70,51 +71,78 @@ namespace AnelDaGanancia
         }
     }
 
-    // 1. Patch exato para itens únicos caindo no chão (7 parâmetros)
-    [HarmonyPatch(typeof(Game1), nameof(Game1.createObjectDebris), new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
+    // 1. Patch para itens únicos caindo no chão
+    [HarmonyPatch]
     public static class PatchDropsUnicos
     {
-        static bool Prefix(string __0, int __1, int __2, int __3, int __4, float __5, GameLocation __6)
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            foreach (var method in AccessTools.GetDeclaredMethods(typeof(Game1)))
+            {
+                if (method.Name == "createObjectDebris")
+                {
+                    var parameters = method.GetParameters();
+                    if (parameters.Length == 7 &&
+                        parameters[1].ParameterType == typeof(int) &&
+                        parameters[2].ParameterType == typeof(int))
+                    {
+                        yield return method;
+                    }
+                }
+            }
+        }
+
+        static bool Prefix(object[] __args)
         {
             if (ModEntry.IsProcessingMultiple) return true;
 
-            if (ModEntry.TemAnelEquipado())
+            if (ModEntry.TemAnelEquipado() && __args != null && __args.Length == 7)
             {
+                int x = (int)__args[1];
+                int y = (int)__args[2];
+                int ground = (int)__args[3];
+                int quality = (int)__args[4];
+                float velocity = (float)__args[5];
+                GameLocation loc = __args[6] as GameLocation;
+
                 for (int i = 0; i < ModEntry.Multiplicador; i++)
                 {
                     int offsetX = Game1.random.Next(-32, 33);
                     int offsetY = Game1.random.Next(-32, 33);
-                    Game1.createObjectDebris(__0, __1 + offsetX, __2 + offsetY, __3, __4, __5, __6);
+                    
+                    if (__args[0] is string strId)
+                        Game1.createObjectDebris(strId, x + offsetX, y + offsetY, ground, quality, velocity, loc);
+                    else if (__args[0] is int intId)
+                        Game1.createObjectDebris(intId, x + offsetX, y + offsetY, ground, quality, velocity, loc);
                 }
-                return false; 
+                return false;
             }
             return true;
         }
     }
 
-    // 2. Patch exato para múltiplos itens (ID texto, 8 parâmetros no 1.6)
-    [HarmonyPatch(typeof(Game1), nameof(Game1.createMultipleObjectDebris), new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
-    public static class PatchDropsMultiplosString
+    // 2. Patch para múltiplos itens de uma vez (madeira, pedra, etc.)
+    [HarmonyPatch]
+    public static class PatchDropsMultiplos
     {
-        static void Prefix(ref int __3) // O 4º parâmetro é a quantidade
+        static IEnumerable<MethodBase> TargetMethods()
         {
-            if (ModEntry.TemAnelEquipado())
+            foreach (var method in AccessTools.GetDeclaredMethods(typeof(Game1)))
             {
-                ModEntry.IsProcessingMultiple = true;
-                __3 *= ModEntry.Multiplicador;
+                if (method.Name == "createMultipleObjectDebris")
+                {
+                    var parameters = method.GetParameters();
+                    if (parameters.Length == 8 &&
+                        parameters[1].ParameterType == typeof(int) &&
+                        parameters[2].ParameterType == typeof(int) &&
+                        parameters[3].ParameterType == typeof(int))
+                    {
+                        yield return method;
+                    }
+                }
             }
         }
 
-        static void Postfix()
-        {
-            ModEntry.IsProcessingMultiple = false;
-        }
-    }
-
-    // 3. Patch exato para múltiplos itens (ID numérico, 8 parâmetros no 1.6)
-    [HarmonyPatch(typeof(Game1), nameof(Game1.createMultipleObjectDebris), new Type[] { typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
-    public static class PatchDropsMultiplosInt
-    {
         static void Prefix(ref int __3)
         {
             if (ModEntry.TemAnelEquipado())
