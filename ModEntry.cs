@@ -72,13 +72,20 @@ namespace AnelDaGanancia
     }
 
     // 1. Patch para itens únicos caindo no chão
-    [HarmonyPatch(typeof(Game1), nameof(Game1.createObjectDebris))]
-    [HarmonyPatch(new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
+    [HarmonyPatch]
     public static class PatchDropsUnicos
     {
-        static bool Prefix(ref string id, int xTile, int yTile, int groundLevel, int itemQuality, float velocityMultiplyer, GameLocation location)
+        static MethodBase TargetMethod()
         {
-            if (ModEntry.IsProcessingMultiple) return true; // Se já está multiplicando em lote, não faz nada aqui
+            return AccessTools.GetDeclaredMethods(typeof(Game1))
+                .FirstOrDefault(m => m.Name == "createObjectDebris" 
+                                  && m.GetParameters().Length >= 4 
+                                  && m.GetParameters()[0].ParameterType == typeof(string));
+        }
+
+        static bool Prefix(string __0, int __1, int __2, int __3, int __4, float __5, GameLocation __6)
+        {
+            if (ModEntry.IsProcessingMultiple) return true; // Se já está multiplicando em lote, ignora
 
             if (ModEntry.TemAnelEquipado())
             {
@@ -86,7 +93,7 @@ namespace AnelDaGanancia
                 {
                     int offsetX = Game1.random.Next(-32, 33);
                     int offsetY = Game1.random.Next(-32, 33);
-                    Game1.createObjectDebris(id, xTile + offsetX, yTile + offsetY, groundLevel, itemQuality, velocityMultiplyer, location);
+                    Game1.createObjectDebris(__0, __1 + offsetX, __2 + offsetY, __3, __4, __5, __6);
                 }
                 return false; 
             }
@@ -94,35 +101,35 @@ namespace AnelDaGanancia
         }
     }
 
-    // 2. Patch dinâmico para múltiplos itens (ID em texto)
+    // 2. Patch para múltiplos itens de uma vez (ID texto)
     [HarmonyPatch]
     public static class PatchDropsMultiplosString
     {
         static MethodBase TargetMethod()
         {
-            // Encontra o método dinamicamente sem depender da ordem exata dos parâmetros
             return AccessTools.GetDeclaredMethods(typeof(Game1))
                 .FirstOrDefault(m => m.Name == "createMultipleObjectDebris" 
-                                  && m.GetParameters().Length == 7 
-                                  && m.GetParameters()[0].ParameterType == typeof(string));
+                                  && m.GetParameters().Length >= 4 
+                                  && m.GetParameters()[0].ParameterType == typeof(string)
+                                  && m.GetParameters()[3].ParameterType == typeof(int));
         }
 
-        static void Prefix(object[] __args)
+        static void Prefix(ref int __3) // O 4º parâmetro (índice 3) é a quantidade de itens
         {
-            if (ModEntry.TemAnelEquipado() && __args != null && __args.Length > 3)
+            if (ModEntry.TemAnelEquipado())
             {
-                ModEntry.IsProcessingMultiple = true; // Ativa a trava
-                __args[3] = (int)__args[3] * ModEntry.Multiplicador; // Multiplica o parâmetro "number" (posição 3)
+                ModEntry.IsProcessingMultiple = true;
+                __3 *= ModEntry.Multiplicador;
             }
         }
 
         static void Postfix()
         {
-            ModEntry.IsProcessingMultiple = false; // Desativa a trava
+            ModEntry.IsProcessingMultiple = false;
         }
     }
 
-    // 3. Patch dinâmico para múltiplos itens (ID numérico)
+    // 3. Patch para múltiplos itens de uma vez (ID numérico)
     [HarmonyPatch]
     public static class PatchDropsMultiplosInt
     {
@@ -130,16 +137,17 @@ namespace AnelDaGanancia
         {
             return AccessTools.GetDeclaredMethods(typeof(Game1))
                 .FirstOrDefault(m => m.Name == "createMultipleObjectDebris" 
-                                  && m.GetParameters().Length == 7 
-                                  && m.GetParameters()[0].ParameterType == typeof(int));
+                                  && m.GetParameters().Length >= 4 
+                                  && m.GetParameters()[0].ParameterType == typeof(int)
+                                  && m.GetParameters()[3].ParameterType == typeof(int));
         }
 
-        static void Prefix(object[] __args)
+        static void Prefix(ref int __3)
         {
-            if (ModEntry.TemAnelEquipado() && __args != null && __args.Length > 3)
+            if (ModEntry.TemAnelEquipado())
             {
                 ModEntry.IsProcessingMultiple = true;
-                __args[3] = (int)__args[3] * ModEntry.Multiplicador;
+                __3 *= ModEntry.Multiplicador;
             }
         }
 
