@@ -14,13 +14,13 @@ namespace AnelDaGanancia
     public class ModEntry : Mod
     {
         internal static IMonitor ModMonitor;
-        internal static int Multiplicador = 5; 
-        internal static bool IsProcessingMultiple = false; 
+        internal static int Multiplicador = 5;
+        internal static bool IsProcessingMultiple = false;
 
         public override void Entry(IModHelper helper)
         {
             ModMonitor = this.Monitor;
-            
+
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
 
@@ -41,10 +41,10 @@ namespace AnelDaGanancia
                         DisplayName = "Anel da Ganancia",
                         Description = "Multiplica drasticamente os drops de recursos.",
                         Type = "Ring",
-                        Category = -96, 
+                        Category = -96,
                         Price = 1000,
                         Texture = "Maps/springobjects",
-                        SpriteIndex = 526, 
+                        SpriteIndex = 526,
                         ExcludeFromShippingCollection = true,
                         CanBeGivenAsGift = true,
                         CanBeTrashed = true
@@ -66,7 +66,7 @@ namespace AnelDaGanancia
         internal static bool TemAnelEquipado()
         {
             if (Game1.player == null) return false;
-            return Game1.player.leftRing.Value?.ItemId == "AnelDaGanancia_Item" || 
+            return Game1.player.leftRing.Value?.ItemId == "AnelDaGanancia_Item" ||
                    Game1.player.rightRing.Value?.ItemId == "AnelDaGanancia_Item";
         }
     }
@@ -109,11 +109,11 @@ namespace AnelDaGanancia
                 {
                     int offsetX = Game1.random.Next(-32, 33);
                     int offsetY = Game1.random.Next(-32, 33);
-                    
+
                     if (__args[0] is string strId)
                         Game1.createObjectDebris(strId, x + offsetX, y + offsetY, ground, quality, velocity, loc);
                     else if (__args[0] is int intId)
-                        Game1.createObjectDebris(intId, x + offsetX, y + offsetY, ground, quality, velocity, loc);
+                        Game1.createObjectDebris(intId.ToString(), x + offsetX, y + offsetY, ground, quality, velocity, loc);
                 }
                 return false;
             }
@@ -132,7 +132,7 @@ namespace AnelDaGanancia
                 if (method.Name == "createMultipleObjectDebris")
                 {
                     var parameters = method.GetParameters();
-                    if (parameters.Length == 8 &&
+                    if (parameters.Length >= 4 &&
                         parameters[1].ParameterType == typeof(int) &&
                         parameters[2].ParameterType == typeof(int) &&
                         parameters[3].ParameterType == typeof(int))
