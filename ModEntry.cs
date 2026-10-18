@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using HarmonyLib;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -15,7 +14,7 @@ namespace AnelDaGanancia
     {
         internal static IMonitor ModMonitor;
         internal static int Multiplicador = 5; 
-        internal static bool IsProcessingMultiple = false; // Trava para evitar multiplicação dupla
+        internal static bool IsProcessingMultiple = false; 
 
         public override void Entry(IModHelper helper)
         {
@@ -71,21 +70,13 @@ namespace AnelDaGanancia
         }
     }
 
-    // 1. Patch para itens únicos caindo no chão
-    [HarmonyPatch]
+    // 1. Patch exato para itens únicos caindo no chão (7 parâmetros)
+    [HarmonyPatch(typeof(Game1), nameof(Game1.createObjectDebris), new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
     public static class PatchDropsUnicos
     {
-        static MethodBase TargetMethod()
-        {
-            return AccessTools.GetDeclaredMethods(typeof(Game1))
-                .FirstOrDefault(m => m.Name == "createObjectDebris" 
-                                  && m.GetParameters().Length >= 4 
-                                  && m.GetParameters()[0].ParameterType == typeof(string));
-        }
-
         static bool Prefix(string __0, int __1, int __2, int __3, int __4, float __5, GameLocation __6)
         {
-            if (ModEntry.IsProcessingMultiple) return true; // Se já está multiplicando em lote, ignora
+            if (ModEntry.IsProcessingMultiple) return true;
 
             if (ModEntry.TemAnelEquipado())
             {
@@ -101,20 +92,11 @@ namespace AnelDaGanancia
         }
     }
 
-    // 2. Patch para múltiplos itens de uma vez (ID texto)
-    [HarmonyPatch]
+    // 2. Patch exato para múltiplos itens (ID texto, 8 parâmetros no 1.6)
+    [HarmonyPatch(typeof(Game1), nameof(Game1.createMultipleObjectDebris), new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
     public static class PatchDropsMultiplosString
     {
-        static MethodBase TargetMethod()
-        {
-            return AccessTools.GetDeclaredMethods(typeof(Game1))
-                .FirstOrDefault(m => m.Name == "createMultipleObjectDebris" 
-                                  && m.GetParameters().Length >= 4 
-                                  && m.GetParameters()[0].ParameterType == typeof(string)
-                                  && m.GetParameters()[3].ParameterType == typeof(int));
-        }
-
-        static void Prefix(ref int __3) // O 4º parâmetro (índice 3) é a quantidade de itens
+        static void Prefix(ref int __3) // O 4º parâmetro é a quantidade
         {
             if (ModEntry.TemAnelEquipado())
             {
@@ -129,19 +111,10 @@ namespace AnelDaGanancia
         }
     }
 
-    // 3. Patch para múltiplos itens de uma vez (ID numérico)
-    [HarmonyPatch]
+    // 3. Patch exato para múltiplos itens (ID numérico, 8 parâmetros no 1.6)
+    [HarmonyPatch(typeof(Game1), nameof(Game1.createMultipleObjectDebris), new Type[] { typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
     public static class PatchDropsMultiplosInt
     {
-        static MethodBase TargetMethod()
-        {
-            return AccessTools.GetDeclaredMethods(typeof(Game1))
-                .FirstOrDefault(m => m.Name == "createMultipleObjectDebris" 
-                                  && m.GetParameters().Length >= 4 
-                                  && m.GetParameters()[0].ParameterType == typeof(int)
-                                  && m.GetParameters()[3].ParameterType == typeof(int));
-        }
-
         static void Prefix(ref int __3)
         {
             if (ModEntry.TemAnelEquipado())
