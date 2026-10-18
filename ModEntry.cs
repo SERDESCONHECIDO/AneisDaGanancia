@@ -15,7 +15,7 @@ namespace AnelDaGanancia
     {
         internal static IMonitor ModMonitor;
         internal static int Multiplicador = 5;
-        internal static bool IsProcessingMultiple = false;
+        internal static bool IsProcessing = false; // Trava global para evitar loops infinitos
 
         public override void Entry(IModHelper helper)
         {
@@ -71,7 +71,7 @@ namespace AnelDaGanancia
         }
     }
 
-    // 1. Patch para itens únicos caindo no chão
+    // 1. Patch para itens únicos (argila, pedras, etc)
     [HarmonyPatch]
     public static class PatchDropsUnicos
     {
@@ -94,34 +94,43 @@ namespace AnelDaGanancia
 
         static bool Prefix(object[] __args)
         {
-            if (ModEntry.IsProcessingMultiple) return true;
+            // Se já estamos no meio da criação de um drop múltiplo ou único, não faz nada
+            if (ModEntry.IsProcessing) return true;
 
             if (ModEntry.TemAnelEquipado() && __args != null && __args.Length == 7)
             {
-                int x = (int)__args[1];
-                int y = (int)__args[2];
-                int ground = (int)__args[3];
-                int quality = (int)__args[4];
-                float velocity = (float)__args[5];
-                GameLocation loc = __args[6] as GameLocation;
-
-                for (int i = 0; i < ModEntry.Multiplicador; i++)
+                ModEntry.IsProcessing = true; // Liga a trava
+                try
                 {
-                    int offsetX = Game1.random.Next(-32, 33);
-                    int offsetY = Game1.random.Next(-32, 33);
+                    int x = (int)__args[1];
+                    int y = (int)__args[2];
+                    int ground = (int)__args[3];
+                    int quality = (int)__args[4];
+                    float velocity = (float)__args[5];
+                    GameLocation loc = __args[6] as GameLocation;
 
-                    if (__args[0] is string strId)
-                        Game1.createObjectDebris(strId, x + offsetX, y + offsetY, ground, quality, velocity, loc);
-                    else if (__args[0] is int intId)
-                        Game1.createObjectDebris(intId.ToString(), x + offsetX, y + offsetY, ground, quality, velocity, loc);
+                    for (int i = 0; i < ModEntry.Multiplicador; i++)
+                    {
+                        int offsetX = Game1.random.Next(-32, 33);
+                        int offsetY = Game1.random.Next(-32, 33);
+
+                        if (__args[0] is string strId)
+                            Game1.createObjectDebris(strId, x + offsetX, y + offsetY, ground, quality, velocity, loc);
+                        else if (__args[0] is int intId)
+                            Game1.createObjectDebris(intId.ToString(), x + offsetX, y + offsetY, ground, quality, velocity, loc);
+                    }
                 }
-                return false;
+                finally
+                {
+                    ModEntry.IsProcessing = false; // Desliga a trava
+                }
+                return false; // Impede a criação original
             }
             return true;
         }
     }
 
-    // 2. Patch para múltiplos itens de uma vez (madeira, pedra, etc.)
+    // 2. Patch para múltiplos itens (madeira, seiva, sementes, etc)
     [HarmonyPatch]
     public static class PatchDropsMultiplos
     {
@@ -147,14 +156,14 @@ namespace AnelDaGanancia
         {
             if (ModEntry.TemAnelEquipado())
             {
-                ModEntry.IsProcessingMultiple = true;
+                ModEntry.IsProcessing = true; // Liga a trava para os itens internos não multiplicarem de novo
                 __3 *= ModEntry.Multiplicador;
             }
         }
 
         static void Postfix()
         {
-            ModEntry.IsProcessingMultiple = false;
+            ModEntry.IsProcessing = false; // Desliga a trava
         }
     }
 }
