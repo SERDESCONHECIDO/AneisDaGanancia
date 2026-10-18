@@ -1,0 +1,50 @@
+name: Build Mod
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.0.x'
+    - name: Baixar Dependencias
+      run: |
+        wget https://github.com/Pathoschild/SMAPI/releases/download/4.1.10/SMAPI-4.1.10-installer.zip -O smapi.zip
+        unzip -q smapi.zip -d smapi_temp
+        mkdir -p lib
+        cp smapi_temp/internal/*.dll lib/ || true
+    - name: Criar Projeto
+      run: |
+        cat << 'EOF' > AnelDaGanancia.csproj
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net6.0</TargetFramework>
+            <EnableHarmony>true</EnableHarmony>
+          </PropertyGroup>
+          <ItemGroup>
+            <Reference Include="StardewValley"><HintPath>lib/StardewValley.dll</HintPath></Reference>
+            <Reference Include="StardewModdingAPI"><HintPath>lib/StardewModdingAPI.dll</HintPath></Reference>
+            <Reference Include="StardewValley.GameData"><HintPath>lib/StardewValley.GameData.dll</HintPath></Reference>
+            <Reference Include="MonoGame.Framework"><HintPath>lib/MonoGame.Framework.dll</HintPath></Reference>
+            <Reference Include="0Harmony"><HintPath>lib/0Harmony.dll</HintPath></Reference>
+          </ItemGroup>
+        </Project>
+        EOF
+    - name: Compilar
+      run: dotnet build -c Release
+    - name: Empacotar
+      run: |
+        mkdir -p Mod_Pronto
+        cp manifest.json Mod_Pronto/
+        cp bin/Release/net6.0/AnelDaGanancia.dll Mod_Pronto/
+    - name: Salvar Zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: AnelDaGanancia-Mod
+        path: Mod_Pronto/
