@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -14,6 +15,7 @@ namespace AnelDaGanancia
     {
         internal static IMonitor ModMonitor;
         internal static int Multiplicador = 5; 
+        internal static bool IsProcessingMultiple = false; // Trava para evitar multiplicação dupla
 
         public override void Entry(IModHelper helper)
         {
@@ -61,7 +63,6 @@ namespace AnelDaGanancia
             }
         }
 
-        // Função auxiliar para verificar se o jogador está com o anel
         internal static bool TemAnelEquipado()
         {
             if (Game1.player == null) return false;
@@ -70,13 +71,15 @@ namespace AnelDaGanancia
         }
     }
 
-    // 1. Patch para itens únicos caindo no chão (ex: uma pedra específica)
+    // 1. Patch para itens únicos caindo no chão
     [HarmonyPatch(typeof(Game1), nameof(Game1.createObjectDebris))]
     [HarmonyPatch(new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
     public static class PatchDropsUnicos
     {
         static bool Prefix(ref string id, int xTile, int yTile, int groundLevel, int itemQuality, float velocityMultiplyer, GameLocation location)
         {
+            if (ModEntry.IsProcessingMultiple) return true; // Se já está multiplicando em lote, não faz nada aqui
+
             if (ModEntry.TemAnelEquipado())
             {
                 for (int i = 0; i < ModEntry.Multiplicador; i++)
@@ -91,32 +94,58 @@ namespace AnelDaGanancia
         }
     }
 
-    // 2. Patch para múltiplos itens de uma vez usando ID em texto (ex: madeira, seiva)
-    [HarmonyPatch(typeof(Game1), nameof(Game1.createMultipleObjectDebris))]
-    [HarmonyPatch(new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(GameLocation), typeof(int) })]
+    // 2. Patch dinâmico para múltiplos itens (ID em texto)
+    [HarmonyPatch]
     public static class PatchDropsMultiplosString
     {
-        static void Prefix(string id, int xTile, int yTile, ref int number, int groundLevel, GameLocation location, int itemQuality)
+        static MethodBase TargetMethod()
         {
-            if (ModEntry.TemAnelEquipado())
+            // Encontra o método dinamicamente sem depender da ordem exata dos parâmetros
+            return AccessTools.GetDeclaredMethods(typeof(Game1))
+                .FirstOrDefault(m => m.Name == "createMultipleObjectDebris" 
+                                  && m.GetParameters().Length == 7 
+                                  && m.GetParameters()[0].ParameterType == typeof(string));
+        }
+
+        static void Prefix(object[] __args)
+        {
+            if (ModEntry.TemAnelEquipado() && __args != null && __args.Length > 3)
             {
-                // Multiplica a quantidade diretamente
-                number *= ModEntry.Multiplicador;
+                ModEntry.IsProcessingMultiple = true; // Ativa a trava
+                __args[3] = (int)__args[3] * ModEntry.Multiplicador; // Multiplica o parâmetro "number" (posição 3)
             }
+        }
+
+        static void Postfix()
+        {
+            ModEntry.IsProcessingMultiple = false; // Desativa a trava
         }
     }
 
-    // 3. Patch para múltiplos itens usando ID numérico
-    [HarmonyPatch(typeof(Game1), nameof(Game1.createMultipleObjectDebris))]
-    [HarmonyPatch(new Type[] { typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(GameLocation), typeof(int) })]
+    // 3. Patch dinâmico para múltiplos itens (ID numérico)
+    [HarmonyPatch]
     public static class PatchDropsMultiplosInt
     {
-        static void Prefix(int objectIndex, int xTile, int yTile, ref int number, int groundLevel, GameLocation location, int itemQuality)
+        static MethodBase TargetMethod()
         {
-            if (ModEntry.TemAnelEquipado())
+            return AccessTools.GetDeclaredMethods(typeof(Game1))
+                .FirstOrDefault(m => m.Name == "createMultipleObjectDebris" 
+                                  && m.GetParameters().Length == 7 
+                                  && m.GetParameters()[0].ParameterType == typeof(int));
+        }
+
+        static void Prefix(object[] __args)
+        {
+            if (ModEntry.TemAnelEquipado() && __args != null && __args.Length > 3)
             {
-                number *= ModEntry.Multiplicador;
+                ModEntry.IsProcessingMultiple = true;
+                __args[3] = (int)__args[3] * ModEntry.Multiplicador;
             }
+        }
+
+        static void Postfix()
+        {
+            ModEntry.IsProcessingMultiple = false;
         }
     }
 }
