@@ -19,7 +19,6 @@ namespace AnelDaGanancia
         {
             ModMonitor = this.Monitor;
             
-            // Usa o evento correto para editar os dados do jogo
             helper.Events.Content.AssetRequested += OnAssetRequested;
             helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
 
@@ -29,7 +28,6 @@ namespace AnelDaGanancia
 
         private void OnAssetRequested(object sender, AssetRequestedEventArgs e)
         {
-            // Edita o arquivo Data/Objects para adicionar o anel
             if (e.NameWithoutLocale.IsEquivalentTo("Data/Objects"))
             {
                 e.Edit(asset =>
@@ -55,7 +53,6 @@ namespace AnelDaGanancia
 
         private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
-            // Adiciona o anel ao inventário do jogador ao carregar o save
             if (!Game1.player.Items.Any(item => item?.ItemId == "AnelDaGanancia_Item"))
             {
                 var anel = new Ring("AnelDaGanancia_Item");
@@ -65,12 +62,12 @@ namespace AnelDaGanancia
         }
     }
 
-    // Patch corrigido para a assinatura real do método no jogo 1.6
+    // Patch corrigido com os nomes EXATOS das variáveis do jogo (xTile, yTile, velocityMultiplyer)
     [HarmonyPatch(typeof(Game1), nameof(Game1.createObjectDebris))]
     [HarmonyPatch(new Type[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int), typeof(float), typeof(GameLocation) })]
     public static class PatchDrops
     {
-        static bool Prefix(ref string id, int x, int y, int groundLevel, int itemQuality, float velocity, GameLocation location)
+        static bool Prefix(ref string id, int xTile, int yTile, int groundLevel, int itemQuality, float velocityMultiplyer, GameLocation location)
         {
             if (Game1.player == null) return true;
             
@@ -83,8 +80,8 @@ namespace AnelDaGanancia
                 {
                     int offsetX = Game1.random.Next(-32, 33);
                     int offsetY = Game1.random.Next(-32, 33);
-                    // A chamada original também precisa do parâmetro velocity
-                    Game1.createObjectDebris(id, x + offsetX, y + offsetY, groundLevel, itemQuality, velocity, location);
+                    // Usa os nomes de variáveis corretos
+                    Game1.createObjectDebris(id, xTile + offsetX, yTile + offsetY, groundLevel, itemQuality, velocityMultiplyer, location);
                 }
                 return false; 
             }
