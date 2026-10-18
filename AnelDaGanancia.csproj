@@ -6,12 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- O nome correto do arquivo principal é "Stardew Valley.dll", com espaço -->
     <Reference Include="Stardew Valley">
       <HintPath>$(HOME)/StardewValley/Stardew Valley.dll</HintPath>
     </Reference>
-
-    <!-- Referências que ficam na raiz do repositório clonado -->
     <Reference Include="StardewModdingAPI">
       <HintPath>$(HOME)/StardewValley/StardewModdingAPI.dll</HintPath>
     </Reference>
@@ -21,10 +18,13 @@
     <Reference Include="MonoGame.Framework">
       <HintPath>$(HOME)/StardewValley/MonoGame.Framework.dll</HintPath>
     </Reference>
-
-    <!-- O 0Harmony.dll fica dentro da subpasta "smapi-internal" -->
+    
+    <!-- Referências da pasta smapi-internal -->
     <Reference Include="0Harmony">
       <HintPath>$(HOME)/StardewValley/smapi-internal/0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="SMAPI.Toolkit.CoreInterfaces">
+      <HintPath>$(HOME)/StardewValley/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
