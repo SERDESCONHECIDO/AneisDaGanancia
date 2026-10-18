@@ -1,0 +1,9 @@
+{
+  "Name": "Anel da Ganancia",
+  "Author": "SeuNome",
+  "Version": "1.0.0",
+  "Description": "Adiciona o Anel da Ganancia, que multiplica drasticamente os drops.",
+  "UniqueID": "SeuNome.AnelDaGanancia",
+  "EntryDll": "AnelDaGanancia.dll",
+  "MinimumApiVersion": "4.0.0"
+}
