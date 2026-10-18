@@ -1,5 +1,4 @@
 name: Build Mod
-
 on:
   push:
   workflow_dispatch:
@@ -9,22 +8,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '6.0.x'
-    - name: Baixar Dependencias
+        
+    - name: Baixar SMAPI
       run: |
         wget https://github.com/Pathoschild/SMAPI/releases/download/4.1.10/SMAPI-4.1.10-installer.zip -O smapi.zip
-        unzip -q smapi.zip -d smapi_temp
+        unzip -q smapi.zip
         mkdir -p lib
-        cp smapi_temp/internal/*.dll lib/ || true
+        find . -name "*.dll" -path "*/internal/*" -exec cp {} lib/ \;
+        
     - name: Criar Projeto
       run: |
-        cat << 'EOF' > AnelDaGanancia.csproj
+        cat > AnelDaGanancia.csproj << 'EOF'
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
             <TargetFramework>net6.0</TargetFramework>
+            <LangVersion>latest</LangVersion>
             <EnableHarmony>true</EnableHarmony>
           </PropertyGroup>
           <ItemGroup>
@@ -36,13 +39,16 @@ jobs:
           </ItemGroup>
         </Project>
         EOF
+        
     - name: Compilar
       run: dotnet build -c Release
+      
     - name: Empacotar
       run: |
         mkdir -p Mod_Pronto
         cp manifest.json Mod_Pronto/
         cp bin/Release/net6.0/AnelDaGanancia.dll Mod_Pronto/
+        
     - name: Salvar Zip
       uses: actions/upload-artifact@v4
       with:
